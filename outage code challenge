@@ -6,11 +6,7 @@ library(plyr)
 library(tidyr)
 library(zoo)
 library(lubridate)
-library(tseries)      # time series analysis
-library(forecast)     # time series analysis
-library(xts)
-#set working directory
-setwd("C:/Users/kalyaniK/Downloads/ProgrammingTest (4)/ProgrammingTest/outage")
+
 #read file
 data <- read.csv("data.csv", header = TRUE)
 str(data)
