@@ -24,7 +24,7 @@ data$Outlier = ifelse(data$value > (quantile(data$value, 0.75)+(1*val_IQR)), 1,
 
 table(data$Outlier)
 
-#write a function to compute start and end times
+#Function to extract start and end times of outages
 StartEndTimeFn <- function(x){
   for(i in 1:nrow(x)){
     if(x$Outlier[i] == 1){
@@ -36,11 +36,15 @@ StartEndTimeFn <- function(x){
         res[i,3] <- i+1
         res[i,4] <- EndTime
       }
+      else{
+        i <- i+1
+      }
     }
   }
   return(res)
 }
 
+#store the results in a data frame after applying the function
 result_data <- StartEndTimeFn(data)
 colnames(result_data) = c("StartIndex", "StartTime", "EndIndex", "EndTime")
 
@@ -55,6 +59,7 @@ outage$EndTime = as.POSIXct(outage$EndTime, format = "%Y-%m-%d %H:%M:%S", tz = S
 #find the outage difference - time diff in secs
 outage$OutageTimeSecs = difftime(outage$EndTime, outage$StartTime, units = "secs")
 
+#final result can be seen as-
 head(outage)
 
 #2nd try..
