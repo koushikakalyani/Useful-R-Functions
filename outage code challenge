@@ -1,18 +1,25 @@
+# Time Series Data
+
 # Load libraries
 library(dplyr)
 library(plyr)
 library(tidyr)
 library(zoo)
 library(lubridate)
-
+library(tseries)      # time series analysis
+library(forecast)     # time series analysis
+library(xts)
+#set working directory
+setwd("C:/Users/kalyaniK/Downloads/ProgrammingTest (4)/ProgrammingTest/outage")
 #read file
 data <- read.csv("data.csv", header = TRUE)
 str(data)
 data$transactiondate = as.character(data$transactiondate)
 
+#observe the distribution
 boxplot(data$value)
 summary(data$value)
-val_IQR = IQR(data$value)
+val_IQR = IQR(data$value) #interquartile range
 val_IQR
 
 #outlier flag -- here we consider the boundary to identify outlier to be Q3+1*IQR or Q1-1*IQR
@@ -41,53 +48,60 @@ StartEndTimeFn <- function(x){
 result_data <- StartEndTimeFn(data)
 colnames(result_data) = c("StartIndex", "StartTime", "EndIndex", "EndTime")
 
-#2nd attempt in holding the value 1 and iterate until it finds 0 
-#and mark the timestamp as EndTime
-
-StartEndTimeFn <- function(x){
-  for(i in 1:nrow(x)){
-    if(x$Outlier[i] == 1){
-      
-      StartTime <- x$transactiondate[i]
-      res[i,1] <- i
-      res[i,2] <- StartTime
-      while(x$Outlier[i+1]==1){
-        i = i+1
-      }
-      k = i+1  
-      EndTime <- x$transactiondate[k]
-      res[i,3] <- k
-      res[i,4] <- EndTime
-      
-    }
-  }
-  return(res)
-}
-result_data <- StartEndTimeFn(data)
-colnames(result_data) = c("StartIndex", "StartTime", "EndIndex", "EndTime")
-
-
-#only keep the rows that have an outage start time
+#only keep the rows with an outage start time
 outage <- subset(result_data, !is.na(result_data$StartTime))
 rm(result_data)
 
-#when the EndTime in a row is NA substitute it by the next non-null value in the list
-replaceNAby <- function(x){
-  for(i in 1:nrow(x)){
-    if(is.na(x$EndIndex[i])){
-      for(j in i+1:nrow(x)){
-        if(!is.na(x$EndIndex[j])){
-          endi <- x$EndIndex[j]
-          endt <- x$EndTime[j]
-          res[j,1] <- endi
-          res[j,2] <- endt
-        }
-      }
-    }
-  }
-  return(res)
-}
+#convert to date time stamp
+outage$StartTime = as.POSIXct(outage$StartTime, format = "%Y-%m-%d %H:%M:%S", tz = Sys.timezone())
+outage$EndTime = as.POSIXct(outage$EndTime, format = "%Y-%m-%d %H:%M:%S", tz = Sys.timezone())
 
-replacedata <- replaceNAby(outage)
-colnames(replacedata) <- c("Index", "EndTime")
-replacedata <- subset(replacedata, !is.na(replacedata$EndTime))
+#find the outage difference - time diff in secs
+outage$OutageTimeSecs = difftime(outage$EndTime, outage$StartTime, units = "secs")
+
+head(outage)
+
+#2nd try..
+# StartEndTimeFn <- function(x){
+#   for(i in 1:nrow(x)){
+#     if(x$Outlier[i] == 1){
+#       
+#       StartTime <- x$transactiondate[i]
+#       res[i,1] <- i
+#       res[i,2] <- StartTime
+#       while(x$Outlier[i+1]==1){
+#         i = i+1
+#       }
+#       k = i+1  
+#       EndTime <- x$transactiondate[k]
+#       res[i,3] <- k
+#       res[i,4] <- EndTime
+#       
+#     }
+#   }
+#   return(res)
+# }
+# result_data <- StartEndTimeFn(data)
+# colnames(result_data) = c("StartIndex", "StartTime", "EndIndex", "EndTime")
+
+
+# #when the EndTime in a row is NA substitute it by the next non-null value in the list
+# replaceNAby <- function(x){
+#   for(i in 1:nrow(x)){
+#     if(is.na(x$EndIndex[i])){
+#       for(j in i+1:nrow(x)){
+#         if(!is.na(x$EndIndex[j])){
+#           endi <- x$EndIndex[j]
+#           endt <- x$EndTime[j]
+#           res[j,1] <- endi
+#           res[j,2] <- endt
+#         }
+#       }
+#     }
+#   }
+#   return(res)
+# }
+# 
+# replacedata <- replaceNAby(outage)
+# colnames(replacedata) <- c("Index", "EndTime")
+# replacedata <- subset(replacedata, !is.na(replacedata$EndTime))
